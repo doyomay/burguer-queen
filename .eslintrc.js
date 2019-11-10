@@ -21,5 +21,16 @@ module.exports = {
     'react',
   ],
   rules: {
+    'no-console': 'off',
+    'no-use-before-define' : 'off',
   },
+  overrides: [
+    {
+      files: ['*.test.js'],
+      rules: {
+        'react/jsx-filename-extension': 'off',
+        'no-undef' : 'off',
+      }
+    }
+  ],
 };
