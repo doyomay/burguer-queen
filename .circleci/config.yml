@@ -1,37 +1,68 @@
-# Javascript Node CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-javascript/ for more details
-#
-version: 2
+version: 2.0
 jobs:
   build:
+    working_directory: ~/repository
     docker:
-      # specify the version you desire here
-      - image: circleci/node:7.10
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mongo:3.4.4
-
-    working_directory: ~/repo
-
+      - image: circleci/node:10.16.3
     steps:
       - checkout
-
-      # Download and cache dependencies
+      - run:
+          name: update-npm
+          command: 'sudo npm install -g npm@latest'
       - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "package.json" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
-
-      - run: yarn install
-
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: install-npm
+          command: npm install
       - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
           paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
+            - ./node_modules
+      - run:
+          name: eslint
+          command: npm run lint
+      - run:
+          name: test
+          command: npm run test-nowatch
+  deploy: # deploy script
+    working_directory: ~/repository
+    docker:
+      - image: circleci/node:10.16.3
+    steps:
+      - checkout
+      - run:
+          name: update-npm
+          command: 'sudo npm install -g npm@latest'
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: install-npm
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run: # build react
+          name: react-build
+          command: npm run build
+      - run: # make  copy of .firebaserc
+          name: generate-firebaserc
+          command: cp .firebaserc.example .firebaserc
+      - run: # modify .firebaserc with env variable
+          name: modify-firebaserc
+          command: sed -i "s/\[YOUR\-PROJECT\-ID\]/$FIREBASE_PROJECT_ID/g" .firebaserc
+      - run:
+          name: Deploy Firebase
+          command: ./node_modules/.bin/firebase deploy --token "$FIREBASE_TOKEN" --only hosting
 
-      # run tests!
-      - run: yarn test
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build # perform this first
+      - deploy: # perform second
+          requires:
+            - build
+          filters: # only for the master branch
+            branches:
+              only: master

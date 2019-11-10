@@ -7,7 +7,7 @@ export default function (state = initialProps, action) {
     case 'STATE_ADD_TWEET_MODAL':
       return {
         ...state,
-        stateInitialReducerL: action.payload,
+        stateInitialReducer: action.payload,
       };
     default:
       return state;
