@@ -19,8 +19,8 @@ jobs:
           paths:
             - ./node_modules
       - run:
-          - name: eslint
-          - command: npm run lint
+          name: eslint
+          command: npm run lint
       - run:
           name: test
           command: npm run test-nowatch
